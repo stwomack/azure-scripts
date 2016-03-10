@@ -1,0 +1,1 @@
+wget -O "p-rabbitmq-1.5.7.pivotal"  --post-data="" --header="Authorization: Token bKdz7YUok9qT4ZpogCpo" https://network.pivotal.io/api/v2/products/pivotal-rabbitmq-service/releases/1523/product_files/3962/download

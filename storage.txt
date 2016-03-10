@@ -1,0 +1,2 @@
+storage_account_name: swomackstorage2
+storage_access_key: Nzhje0q+i7mbEGU1OvWfCPDMV8UnkoWIAw6hRKYmSbNogCbc8O5mYt2ryZcswET7ShbPXSIBVox29jQOS2lROA==

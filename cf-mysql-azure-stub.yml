@@ -1,0 +1,157 @@
+director_uuid: f137d642-45b9-4b23-a9b8-25e0d534d82e
+
+meta:
+  # Used as a prefix for the deployment name
+  #
+  # e.g. `environment: cf-tabasco` makes a deployment named cf-tabasco-mysql
+  environment: cf-womack
+
+# NOTE:
+# Replace 10.0.{0,1,2} part of the octet
+# with your network configuration
+networks:
+- name: mysql1
+  type: manual
+  subnets:
+  - range: 10.0.32.0/24
+    reserved:
+      - 10.0.32.2 - 10.0.32.3
+    static:
+      - 10.0.32.4 - 10.0.32.8
+    gateway: 10.0.32.1
+    dns:
+      - 8.8.8.8
+    cloud_properties:
+      virtual_network_name: (( properties.template_only.azure.virtual_network_name ))
+      subnet_name: (( properties.template_only.azure.subnet_names.mysql1 ))
+- name: mysql2
+  type: manual
+  subnets:
+  - range: 10.0.33.0/24
+    reserved:
+      - 10.0.33.2 - 10.0.33.3
+    static:
+      - 10.0.33.4 - 10.0.33.8
+    gateway: 10.0.33.1
+    dns:
+      - 8.8.8.8
+    cloud_properties:
+      virtual_network_name: (( properties.template_only.azure.virtual_network_name ))
+      subnet_name: (( properties.template_only.azure.subnet_names.mysql2 ))
+- name: mysql3
+  type: manual
+  subnets:
+  - range: 10.0.34.0/24
+    reserved:
+      - 10.0.34.2 - 10.0.34.3
+    static:
+      - 10.0.34.4 - 10.0.34.8
+    gateway: 10.0.34.1
+    dns:
+      - 8.8.8.8
+    cloud_properties:
+      virtual_network_name: (( properties.template_only.azure.virtual_network_name ))
+      subnet_name: (( properties.template_only.azure.subnet_names.mysql3 ))
+- name: compilation
+  type: manual
+  subnets:
+  - range: 10.0.35.0/24
+    name: default_unused
+    reserved:
+      - 10.0.35.2 - 10.0.35.3
+    static:
+      - 10.0.35.4 - 10.0.35.8
+    gateway: 10.0.35.1
+    dns:
+      - 8.8.8.8
+    cloud_properties:
+      virtual_network_name: (( properties.template_only.azure.virtual_network_name ))
+      subnet_name: (( properties.template_only.azure.subnet_names.compilation ))
+
+properties:
+  cf:
+    # these come from your cf-release manifest
+    admin_username: admin
+    admin_password: c1oudc0w
+    skip_ssl_validation: true # True if you don't have a trusted SSL certificate, false if you do
+
+  domain: womack.club # The broker registers a route at p-msyql.external_domain.
+  app_domains:
+  - apps.womack.club
+  nats:
+    user: nats
+    password: c1oudc0w
+    machines:
+      - 10.0.16.4
+    port: 4222
+
+  template_only:
+    azure:
+      virtual_network_name: boshvnet-crp
+      subnet_names:
+        mysql1: mysql1
+        mysql2: mysql2
+        mysql3: mysql3
+        compilation: compilation
+
+
+jobs:
+# Jobs for cf-mysql-release are below
+- name: mysql_z1
+  properties:
+    admin_password: password1 #The admin password for the MySQL server process
+    bootstrap_endpoint:
+      username: swomack
+      password: password1
+
+- name: cf-mysql-broker_z1
+  properties:
+    cf:
+      admin_username: (( .properties.cf.admin_username ))
+      admin_password: (( .properties.cf.admin_password ))
+    # The username & password cloud controller will use to authenticate with the service broker.
+    auth_username: swomack # eg. cc
+    auth_password: password1
+    cookie_secret: password1
+    services:
+      - name: p-mysql
+        dashboard_client:
+          secret: password1 #Secret used by MySQL dashboard to fetch an OAuth token from UAA
+        plans:
+        - name: 100mb
+          id: ab08f1bc-e6fc-4b56-a767-ee0fea6e3f20
+          description: Shared MySQL Server
+          max_storage_mb: 100
+          max_user_connections: 20
+          metadata:
+            costs:
+            - amount:
+                usd: 0.0
+              unit: MONTH
+            bullets:
+              - Shared MySQL server
+              - 100 MB storage
+              - 20 concurrent connections
+            displayName: "100 MB"
+        - name: 1gb
+          id: 11d0aa36-dcec-4021-85f5-ea4d9a5c8342
+          description: Shared MySQL Server
+          max_storage_mb: 1000
+          max_user_connections: 40
+          metadata:
+            costs:
+            - amount:
+                usd: 0.0
+              unit: MONTH
+            bullets:
+              - Shared MySQL server
+              - 1000 MB storage
+              - 40 concurrent connections
+            displayName: "1 GB"
+
+- name: proxy_z1
+  release: cf-mysql
+  properties:
+    proxy:
+      api_username: swomack
+      api_password: password1
